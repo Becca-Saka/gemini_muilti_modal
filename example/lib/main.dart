@@ -65,7 +65,9 @@ class _MainScreenState extends State<MainScreen> {
 
   bool isProcessingAudio = false;
   void _connectWebSocket() {
-    client = MultiModalLiveClient(apiKey: 'YOUR_API_KEY');
+    client = MultiModalLiveClient(
+      apiKey: String.fromEnvironment('GEMINI_API_KEY'),
+    );
     client.onConnect((_) {
       debugPrint('Connected!');
       setState(() => _isConnected = true);

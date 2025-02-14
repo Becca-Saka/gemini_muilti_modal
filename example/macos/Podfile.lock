@@ -1,0 +1,28 @@
+PODS:
+  - flutter_pcm_sound (0.0.1):
+    - FlutterMacOS
+  - FlutterMacOS (1.0.0)
+  - record_darwin (1.0.0):
+    - FlutterMacOS
+
+DEPENDENCIES:
+  - flutter_pcm_sound (from `Flutter/ephemeral/.symlinks/plugins/flutter_pcm_sound/macos`)
+  - FlutterMacOS (from `Flutter/ephemeral`)
+  - record_darwin (from `Flutter/ephemeral/.symlinks/plugins/record_darwin/macos`)
+
+EXTERNAL SOURCES:
+  flutter_pcm_sound:
+    :path: Flutter/ephemeral/.symlinks/plugins/flutter_pcm_sound/macos
+  FlutterMacOS:
+    :path: Flutter/ephemeral
+  record_darwin:
+    :path: Flutter/ephemeral/.symlinks/plugins/record_darwin/macos
+
+SPEC CHECKSUMS:
+  flutter_pcm_sound: 4d212fcd1b3524b0891da25d77912672b66c97fb
+  FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
+  record_darwin: a0d515a0ef78c440c123ea3ac76184c9927a94d6
+
+PODFILE CHECKSUM: 54d867c82ac51cbd61b565781b9fada492027009
+
+COCOAPODS: 1.16.2

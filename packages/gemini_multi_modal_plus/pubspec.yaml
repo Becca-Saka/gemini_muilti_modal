@@ -9,11 +9,11 @@ environment:
 
 # Add regular dependencies here.
 dependencies:
-  # audioplayers: ^6.1.2
   flutter:
     sdk: flutter
   flutter_pcm_sound:
     git: https://github.com/keyur2maru/flutter_pcm_sound.git
+  flutter_webrtc: ^0.12.9
   gemini_multi_modal:
     path: ../gemini_multi_modal
   record: ^5.2.0
