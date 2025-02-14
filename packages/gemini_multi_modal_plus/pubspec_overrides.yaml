@@ -1,0 +1,4 @@
+# melos_managed_dependency_overrides: gemini_multi_modal
+dependency_overrides:
+  gemini_multi_modal:
+    path: ../gemini_multi_modal

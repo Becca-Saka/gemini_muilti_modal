@@ -1,0 +1,4 @@
+name: gemini_multi_modal_mono
+packages:
+  - packages/**   
+  - example        

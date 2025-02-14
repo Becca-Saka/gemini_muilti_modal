@@ -1,0 +1,25 @@
+name: gemini_multi_modal_plus
+description: A starting point for Dart libraries or applications.
+version: 1.0.0
+publish_to: none
+# repository: https://github.com/my_org/my_repo
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.0.0"
+
+# Add regular dependencies here.
+dependencies:
+  # audioplayers: ^6.1.2
+  flutter:
+    sdk: flutter
+  flutter_pcm_sound:
+    git: https://github.com/keyur2maru/flutter_pcm_sound.git
+  gemini_multi_modal:
+    path: ../gemini_multi_modal
+  record: ^5.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  lints: ^5.0.0
+  test: ^1.24.0

@@ -1,0 +1,12 @@
+name: gemini_multi_modal_mono
+description: A monorepo containing multiple Dart & Flutter packages.
+publish_to: "none"
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dev_dependencies:
+  melos: ^3.0.1
+
+scripts:
+  bootstrap: melos bootstrap
