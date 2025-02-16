@@ -194,7 +194,13 @@ class _MainScreenState extends State<MainScreen> {
                     },
                   ),
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      if (_isConnected) {
+                        client.disconnect();
+                      } else {
+                        client.connect();
+                      }
+                    },
                     child:
                         _isConnected
                             ? const Text(
