@@ -103,6 +103,13 @@ packages:
       url: "https://github.com/keyur2maru/flutter_pcm_sound.git"
     source: git
     version: "3.1.2"
+  flutter_screen_share:
+    dependency: transitive
+    description:
+      path: "/Users/becca/StudioProjects/flutter/Work/Adire/packages/flutter_screen_share"
+      relative: false
+    source: path
+    version: "0.0.1"
   flutter_test:
     dependency: "direct dev"
     description: flutter

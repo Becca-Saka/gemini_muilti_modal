@@ -5,20 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:gemini_multi_modal_plus/gemini_multi_modal_plus.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(home: MainScreen());
-  }
-}
+void main() => runApp(MaterialApp(home: MainScreen()));
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -28,22 +15,38 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  late ModelAudioService _modelAudioService;
+  late AudioChannel _audioChannel;
+  late ScreenCaptureChannel _screenChannel;
+  late MultiModalLiveClient client;
+
+  ValueNotifier<bool> get isScreenSharing => _screenChannel.isSharing;
   bool _isConnected = false;
 
   bool isMicOn = false;
   String _chatLog = '';
-  late MultiModalLiveClient client;
-
+  bool isProcessingAudio = false;
   @override
   void initState() {
+    _initialize();
     super.initState();
+  }
+
+  void _initialize() {
     _connectWebSocket();
     _initializeAudio();
+    initVideo();
+  }
+
+  void initVideo() {
+    _screenChannel = ScreenCaptureChannel(
+      sendMediaChunk: (base64Data, mimeType) {
+        _sendMediaChunk(base64Data, mimeType);
+      },
+    );
   }
 
   Future<void> _initializeAudio() async {
-    _modelAudioService = ModelAudioService(
+    _audioChannel = AudioChannel(
       sendMediaChunk: (base64Data, mimeType) {
         _sendMediaChunk(base64Data, mimeType);
       },
@@ -51,29 +54,31 @@ class _MainScreenState extends State<MainScreen> {
         updateLog('USER: Audio input');
       },
     );
-    // request mic permission
+
     if (kIsWeb || !Platform.isMacOS) {
-      await _modelAudioService.hasMicPermission();
+      await _audioChannel.hasMicPermission();
     }
   }
 
-  void updateLog(String message) {
-    setState(() {
-      _chatLog += '\n$message';
-    });
+  void _sendMediaChunk(String base64Data, String mimeType) {
+    client.sendRealtimeInput((mimeType: mimeType, data: base64Data));
   }
 
-  bool isProcessingAudio = false;
   void _connectWebSocket() {
     client = MultiModalLiveClient(
-      apiKey: String.fromEnvironment('GEMINI_API_KEY'),
+      apiKey: const String.fromEnvironment('GEMINI_API_KEY'),
     );
+
     client.onConnect((_) {
       debugPrint('Connected!');
       setState(() => _isConnected = true);
     });
 
-    client.onLog((e) => debugPrint('$e'));
+    client.onLog((e) {
+      e = e as StreamingLog;
+      if (e.type == 'client.realtimeInput') return;
+      debugPrint(e.toString());
+    });
 
     client.onDisconnect((_) {
       debugPrint('Disconnected!');
@@ -83,7 +88,7 @@ class _MainScreenState extends State<MainScreen> {
       updateLog('SYSTEM: Setup');
     });
 
-    client.onRecieveContent((content) {
+    client.onReceiveContent((content) {
       debugPrint('Received content: $content');
     });
     client.onModelTurnComplete((content) {
@@ -97,7 +102,7 @@ class _MainScreenState extends State<MainScreen> {
     client.onAudioReceived((audioData) {
       isProcessingAudio = true;
 
-      _modelAudioService.processModelAudio(audioData);
+      _audioChannel.processModelAudio(audioData);
     });
 
     client.onError((error) {
@@ -105,28 +110,24 @@ class _MainScreenState extends State<MainScreen> {
       updateLog('SYSTEM: $error');
     });
 
-    client.connect(
-      generationConfig: {
-        'response_modalities': ['AUDIO'],
-        'speechConfig': {
-          'voiceConfig': {
-            'prebuiltVoiceConfig': {'voiceName': "Puck"},
-          },
-        },
-      },
-    );
+    client.connect();
   }
 
-  Uint8List translateAudio(List<Uint8List> data) {
-    Uint8List result = Uint8List(0);
-    for (var element in data) {
-      result = Uint8List.fromList([...result, ...element]);
-    }
-    return result;
+  void startCapture() async {
+    await _screenChannel.startCapture(context);
+    setState(() {});
   }
 
-  void _sendMediaChunk(String base64Data, String mimeType) {
-    client.sendRealtimeInput((mimeType: mimeType, data: base64Data));
+  void stopCapture() async {
+    await _screenChannel.stopCapture();
+
+    setState(() {});
+  }
+
+  void updateLog(String message) {
+    setState(() {
+      _chatLog += '\n$message';
+    });
   }
 
   @override
@@ -137,6 +138,21 @@ class _MainScreenState extends State<MainScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              ValueListenableBuilder(
+                valueListenable: isScreenSharing,
+                builder: (context, isSharing, child) {
+                  if (isSharing) {
+                    return Expanded(
+                      child: Center(
+                        child: ScreenShareView(
+                          controller: _screenChannel.shareController,
+                        ),
+                      ),
+                    );
+                  }
+                  return SizedBox.shrink();
+                },
+              ),
               const Text(
                 'Chat Log',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w300),
@@ -155,12 +171,25 @@ class _MainScreenState extends State<MainScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  ValueListenableBuilder(
+                    valueListenable: isScreenSharing,
+                    builder: (context, isSharing, child) {
+                      return IconButton(
+                        icon: Icon(
+                          isSharing
+                              ? Icons.screen_share_outlined
+                              : Icons.stop_screen_share,
+                        ),
+                        onPressed: !isSharing ? startCapture : stopCapture,
+                      );
+                    },
+                  ),
                   IconButton(
-                    icon: Icon(isMicOn ? Icons.mic_off : Icons.mic),
+                    icon: Icon(!isMicOn ? Icons.mic_off : Icons.mic),
                     onPressed: () async {
-                      await _modelAudioService.toggleMic();
+                      await _audioChannel.toggleMic();
                       setState(() {
-                        isMicOn = _modelAudioService.isMicOn;
+                        isMicOn = _audioChannel.isMicOn;
                       });
                     },
                   ),
@@ -179,6 +208,7 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -189,8 +219,8 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void dispose() {
     client.disconnect();
-    _modelAudioService.dispose();
-
+    _audioChannel.dispose();
+    _screenChannel.stopCapture();
     super.dispose();
   }
 }

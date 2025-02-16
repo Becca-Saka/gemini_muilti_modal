@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:gemini_multi_modal/src/models/config_model.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:web_socket_client/web_socket_client.dart';
 
@@ -9,20 +10,14 @@ import 'event_emitter.dart';
 import 'event_parser.dart';
 import 'type_definitions.dart';
 
-class BaseMultimodalLiveClient extends EventEmitter {
+class BaseMultiModalLiveClient extends EventEmitter {
   WebSocket? _ws;
-  LiveConfig? _config;
   late String url;
-  String model = 'models/gemini-2.0-flash-exp';
-
-  BaseMultimodalLiveClient({String? url, required String apiKey}) {
+  final List<Map<String, dynamic>> _previousTurns = [];
+  BaseMultiModalLiveClient({String? url, required String apiKey}) {
     this.url = url ??
         'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent';
     this.url += '?key=$apiKey';
-  }
-
-  LiveConfig? getConfig() {
-    return _config != null ? Map<String, dynamic>.from(_config!) : null;
   }
 
   void log(String type, dynamic message) {
@@ -30,13 +25,8 @@ class BaseMultimodalLiveClient extends EventEmitter {
     emit('log', log);
   }
 
-  Future<bool> connect(LiveConfig config) async {
-    _config = config;
-
-    final ws = WebSocket(
-      Uri.parse(url),
-      // pingInterval: const Duration(milliseconds: 300),
-    );
+  Future<bool> connect(ModelConfig config) async {
+    final ws = WebSocket(Uri.parse(url));
     _ws = ws;
 
     ws.messages.listen((message) async {
@@ -54,10 +44,10 @@ class BaseMultimodalLiveClient extends EventEmitter {
       if (state is Connected) {
         log('client.open', 'connected to socket');
         emit('open');
-        if (!config.containsKey('model')) {
-          config['model'] = model;
-        }
-        final setupMessage = {'setup': config};
+
+        final setupMessage = {
+          'setup': config.toJson(),
+        };
         _sendDirect(setupMessage);
         log('client.send', 'setup');
       }
@@ -173,7 +163,10 @@ class BaseMultimodalLiveClient extends EventEmitter {
 
     for (final chunk in chunks) {
       if (chunk.mimeType.contains('audio')) hasAudio = true;
-      if (chunk.mimeType.contains('image')) hasVideo = true;
+      if (chunk.mimeType.contains('image') ||
+          chunk.mimeType.contains('application')) {
+        hasVideo = true;
+      }
       if (hasAudio && hasVideo) break;
     }
 
@@ -235,8 +228,6 @@ class BaseMultimodalLiveClient extends EventEmitter {
     log('client.send', clientContentRequest);
     _storeTurn(content);
   }
-
-  final List<Map<String, dynamic>> _previousTurns = [];
 
   List<Map<String, dynamic>> _getPreviousTurns() {
     return List.from(_previousTurns);

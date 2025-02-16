@@ -13,7 +13,8 @@ dependencies:
     sdk: flutter
   flutter_pcm_sound:
     git: https://github.com/keyur2maru/flutter_pcm_sound.git
-  flutter_webrtc: ^0.12.9
+  flutter_screen_share:
+    path: ../../../../packages/flutter_screen_share
   gemini_multi_modal:
     path: ../gemini_multi_modal
   record: ^5.2.0

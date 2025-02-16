@@ -7,22 +7,32 @@ import 'package:gemini_multi_modal/gemini_multi_modal.dart'
     show GenerativeContentBlob;
 
 import 'audio_player_service.dart';
-import 'audio_service.dart';
+import 'audio_record_service.dart';
+import 'log_level.dart';
 
-class ModelAudioService {
+class AudioChannel {
   final Function(String base64Data, String mimeType) sendMediaChunk;
   final Function() onAudioSent;
-  ModelAudioService({required this.sendMediaChunk, required this.onAudioSent});
+  AudioChannel({required this.sendMediaChunk, required this.onAudioSent});
+
   bool isMicOn = false;
-  Future<bool> hasMicPermission() => _audioService.hasPermission();
-  final AudioService _audioService = AudioService();
-  final AuioPlayerService _audioPlayerService = AuioPlayerService();
-
-  List<Uint8List> audioData = [];
   Timer? _timer;
+  List<Uint8List> audioData = [];
 
-  Future<void> initialize() async {
-    await _audioPlayerService.initializeAudio();
+  Future<bool> hasMicPermission() => _audioService.hasPermission();
+  final AudioRecordService _audioService = AudioRecordService();
+  final AudioPlayerService _audioPlayerService = AudioPlayerService();
+
+  Future<void> initialize({
+    int? threshold,
+    Function(int)? onFeed,
+    LogLevel? logLevel,
+  }) async {
+    await _audioPlayerService.initializeAudio(
+      threshold: threshold,
+      onFeed: onFeed,
+      logLevel: logLevel?.fpcmLogLevel(),
+    );
   }
 
   Future<void> toggleMic() async {
@@ -34,26 +44,13 @@ class ModelAudioService {
   }
 
   void testAudio(Uint8List data) {
+    _audioPlayerService.play(translateAudio(audioData));
     audioData.add(data);
     if (_timer != null && _timer!.isActive) return;
 
-    _timer = Timer(const Duration(milliseconds: 500), () {
-      _audioPlayerService.stream(translateAudio(audioData));
-      audioData = [];
-      onAudioSent();
-    });
-  }
-
-  void sendAudio(Uint8List data) {
-    audioData.add(data);
-    if (_timer != null && _timer!.isActive) return;
-
-    _timer = Timer(const Duration(milliseconds: 900), () {
-      final data = translateAudio(audioData);
-      final encodedAudio = base64Encode(data);
-      sendMediaChunk(encodedAudio, 'audio/pcm;rate=16000');
-
-      audioData = [];
+    _timer = Timer(const Duration(milliseconds: 25), () {
+      _audioPlayerService.play(translateAudio(audioData));
+      audioData.clear();
       onAudioSent();
     });
   }
@@ -76,11 +73,24 @@ class ModelAudioService {
     }
   }
 
+  void sendAudio(Uint8List data) {
+    audioData.add(data);
+    if (_timer != null && _timer!.isActive) return;
+
+    _timer = Timer(const Duration(milliseconds: 25), () {
+      final data = translateAudio(audioData);
+      final encodedAudio = base64Encode(data);
+
+      sendMediaChunk(encodedAudio, 'audio/pcm;rate=16000');
+
+      audioData.clear();
+      onAudioSent();
+    });
+  }
+
   Future<void> _stopRecording() async {
     await _audioService.stopRecording();
     isMicOn = false;
-    // //TODO: remvoe after test
-    // _audioPlayerService.stopFeeding();
     _timer?.cancel();
     _timer = null;
     audioData.clear();
@@ -95,11 +105,11 @@ class ModelAudioService {
 
   Future<void> _playAudio(String base64Audio, int? sampleRate) async {
     final audioData = base64Decode(base64Audio);
-    _audioPlayerService.stream(audioData, sampleRate: sampleRate);
+    _audioPlayerService.play(audioData, sampleRate: sampleRate);
   }
 
   void stopAudio() {
-    _audioPlayerService.stopFeeding();
+    _audioPlayerService.stop();
   }
 
   void dispose() {

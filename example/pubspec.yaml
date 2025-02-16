@@ -1,6 +1,6 @@
 name: example
 description: "A new Flutter project."
-publish_to: 'none'
+publish_to: "none"
 version: 0.1.0
 
 environment:
@@ -11,11 +11,12 @@ dependencies:
     sdk: flutter
   gemini_multi_modal_plus:
     path: ../packages/gemini_multi_modal_plus
+  
 
 dev_dependencies:
+  flutter_lints: ^5.0.0
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
 
 flutter:
   uses-material-design: true
